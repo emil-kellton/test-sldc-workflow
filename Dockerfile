@@ -3,7 +3,7 @@ FROM python:3.12
 WORKDIR /app
 
 # Copy the Python script to the container
-COPY hello.py .
+COPY main.py .
 
 # Define the command to run the script
-CMD ["python", "hello.py"]
+CMD ["python", "main.py"]
