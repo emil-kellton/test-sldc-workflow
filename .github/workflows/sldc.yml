@@ -44,6 +44,8 @@ jobs:
 
       - name: Bump patch version in develop
         run: |
+          git remote update
+          git fetch
           git checkout develop
           OLD_VERSION=$(grep '^version =' pyproject.toml | cut -d '"' -f2)
           MINOR=$(echo $OLD_VERSION | awk -F. '{print $2}')
