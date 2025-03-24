@@ -1,16 +1,9 @@
 FROM python:3.12
-WORKDIR /usr/local/app
+# Set the working directory
+WORKDIR /app
 
-# Install the application dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the Python script to the container
+COPY hello.py .
 
-# Copy in the source code
-COPY src ./src
-EXPOSE 5000
-
-# Setup an app user so the container doesn't run as the root user
-RUN useradd app
-USER app
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Define the command to run the script
+CMD ["python", "hello.py"]
