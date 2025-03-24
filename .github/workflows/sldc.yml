@@ -1,0 +1,121 @@
+name: SLDC Workflow
+
+on:
+  push:
+    branches:
+      - develop
+      - 'uat/*'
+  create:
+    branches:
+      - 'uat/*'
+      - 'stable/*'
+
+jobs:
+  docker-build-develop:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push develop image
+        run: |
+          docker build -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:develop .
+          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:develop
+
+  version-bump-on-uat-create:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'create' && startsWith(github.ref, 'refs/heads/uat/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from branch name
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/uat/}
+          VERSION=$(echo $BRANCH_NAME | cut -d '.' -f1,2)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Bump patch version in develop
+        run: |
+          git checkout develop
+          OLD_VERSION=$(grep '^version =' pyproject.toml | cut -d '"' -f2)
+          MINOR=$(echo $OLD_VERSION | awk -F. '{print $2}')
+          PATCH=$(echo $OLD_VERSION | awk -F. '{print $3}')
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="1.$MINOR.$NEW_PATCH"
+          sed -i "s/^version = .*/version = \"$NEW_VERSION\"/" pyproject.toml
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git commit -am "Bump version to $NEW_VERSION"
+          git push origin develop
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push release candidate image
+        run: |
+          docker build -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC .
+          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC
+
+  version-bump-on-uat-push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/uat/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Bump patch version in pyproject.toml
+        run: |
+          OLD_VERSION=$(grep '^version =' pyproject.toml | cut -d '"' -f2)
+          MINOR=$(echo $OLD_VERSION | awk -F. '{print $2}')
+          PATCH=$(echo $OLD_VERSION | awk -F. '{print $3}')
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="1.$MINOR.$NEW_PATCH"
+          sed -i "s/^version = .*/version = \"$NEW_VERSION\"/" pyproject.toml
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git commit -am "Bump version to $NEW_VERSION"
+          git push origin $GITHUB_REF_NAME
+
+  stable-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'create' && startsWith(github.ref, 'refs/heads/stable/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract stable version from branch name
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/stable/}
+          echo "STABLE_VERSION=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Remove "-RC" suffix in pyproject.toml
+        run: |
+          git checkout $GITHUB_REF_NAME
+          sed -i 's/-RC//' pyproject.toml
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git commit -am "Remove -RC suffix for stable release ${{ env.STABLE_VERSION }}"
+          git push origin $GITHUB_REF_NAME
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Retag and push stable image
+        run: |
+          docker pull ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.STABLE_VERSION }}-RC
+          docker tag ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.STABLE_VERSION }}-RC ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.STABLE_VERSION }}
+          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.STABLE_VERSION }}
