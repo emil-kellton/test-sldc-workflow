@@ -1,4 +1,4 @@
-name: SLDC Workflow
+name: SDLC Workflow
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
           git remote update
           git fetch
           git checkout develop
-          OLD_VERSION=$(grep '^version =' pyproject.toml | cut -d '"' -f2)
+          OLD_VERSION=$(grep '^version =' pyproject.toml | awk '{print $3}')
           MAJOR=$(echo $OLD_VERSION | cut -d. -f1)
           MINOR=$(echo $OLD_VERSION | cut -d. -f2)
           PATCH=$(echo $OLD_VERSION | cut -d. -f3)
@@ -79,7 +79,7 @@ jobs:
 
       - name: Bump patch version in pyproject.toml
         run: |
-          OLD_VERSION=$(grep '^version =' pyproject.toml | cut -d '"' -f2)
+          OLD_VERSION=$(grep '^version =' pyproject.toml | awk '{print $3}')
           MAJOR=$(echo $OLD_VERSION | cut -d. -f1)
           MINOR=$(echo $OLD_VERSION | cut -d. -f2)
           PATCH=$(echo $OLD_VERSION | cut -d. -f3)
