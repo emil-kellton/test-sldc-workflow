@@ -84,7 +84,7 @@ jobs:
           MINOR=$(echo $OLD_VERSION | cut -d. -f2)
           PATCH=$(echo $OLD_VERSION | cut -d. -f3)
           NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH-RC"
           sed -i "s/^version = .*/version = \"$NEW_VERSION\"/" pyproject.toml
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -101,7 +101,8 @@ jobs:
       - name: Extract stable version from branch name
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/stable/}
-          echo "STABLE_VERSION=$BRANCH_NAME" >> $GITHUB_ENV
+          VERSION=$(echo $BRANCH_NAME | cut -d '.' -f1,2)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Remove "-RC" suffix in pyproject.toml
         run: |
@@ -109,7 +110,7 @@ jobs:
           sed -i 's/-RC//' pyproject.toml
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git commit -am "Remove -RC suffix for stable release ${{ env.STABLE_VERSION }}"
+          git commit -am "Remove -RC suffix for stable release ${{ env.VERSION }}"
           git push origin $GITHUB_REF_NAME
 
       - name: Log in to Docker Hub
@@ -120,6 +121,6 @@ jobs:
 
       - name: Retag and push stable image
         run: |
-          docker pull ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.STABLE_VERSION }}-RC
-          docker tag ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.STABLE_VERSION }}-RC ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.STABLE_VERSION }}
-          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.STABLE_VERSION }}
+          docker pull ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC
+          docker tag ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}
+          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}
