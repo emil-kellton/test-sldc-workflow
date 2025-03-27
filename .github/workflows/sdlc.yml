@@ -72,7 +72,8 @@ jobs:
 
   version-bump-on-uat-push:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/uat/')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/uat/') &&
+      github.event.created == false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
