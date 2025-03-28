@@ -1,0 +1,41 @@
+name: SDLC - Stable create
+
+on:
+  create:
+    branches:
+      - 'stable/*'
+
+jobs:
+  stable-create:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'create' && startsWith(github.ref, 'refs/heads/stable/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract stable version from branch name
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/stable/}
+          VERSION=$(echo $BRANCH_NAME | cut -d '.' -f1,2)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Remove "-RC" suffix in pyproject.toml
+        run: |
+          git checkout $GITHUB_REF_NAME
+          sed -i 's/-RC//' pyproject.toml
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git commit -am "Remove -RC suffix for stable release ${{ env.VERSION }}"
+          git push origin $GITHUB_REF_NAME
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Retag and push stable image
+        run: |
+          docker pull ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC
+          docker tag ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}
+          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}
