@@ -28,9 +28,8 @@ jobs:
           docker buildx create --use
           docker buildx build \
             --cache-from ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:cache-$IMAGE_TAG-dist \
-            --cache-to ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:cache-${{ github.sha }}-dist \
             --cache-to ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:cache-$IMAGE_TAG-dist \
-            -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:$IMAGE_TAG-dev \
+            -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:$IMAGE_TAG-dist \
             -f ./Dockerfile \
             --push \
             ./
