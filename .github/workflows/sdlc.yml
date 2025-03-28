@@ -59,16 +59,6 @@ jobs:
           git commit -am "Bump version to $NEW_VERSION"
           git push origin develop
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push release candidate image
-        run: |
-          docker build -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC .
-          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC
 
   version-bump-on-uat-push:
     runs-on: ubuntu-latest
@@ -86,11 +76,23 @@ jobs:
           PATCH=$(echo $OLD_VERSION | cut -d. -f3)
           NEW_PATCH=$((PATCH + 1))
           NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH-RC"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           sed -i "s/^version = .*/version = $NEW_VERSION/" pyproject.toml
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git commit -am "Bump version to $NEW_VERSION"
           git push origin $GITHUB_REF_NAME
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push release candidate image
+        run: |
+          docker build -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.NEW_VERSION }}-RC .
+          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.NEW_VERSION }}-RC
 
   stable-release:
     runs-on: ubuntu-latest
