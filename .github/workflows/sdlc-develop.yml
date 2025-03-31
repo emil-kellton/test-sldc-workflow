@@ -33,3 +33,12 @@ jobs:
             -f ./Dockerfile \
             --push \
             ./
+
+  deploy:
+    uses: ./.github/actions/trigger-azure-pipeline
+    with:
+      azure-organization: ${{ vars.AZURE_ORGANIZATION }}
+      azure-project: ${{ vars.AZURE_PROJECT }}
+      azure-pipeline-id: 1634
+    secrets:
+      azure-pat: ${{ secrets.AZURE_PAT }}
