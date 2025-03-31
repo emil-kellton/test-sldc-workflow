@@ -6,8 +6,8 @@ on:
       - develop
 
 jobs:
-  docker-build-develop:
-    name: "Build Docker image"
+  build-push-develop:
+    name: "Build & push image"
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
     steps:
