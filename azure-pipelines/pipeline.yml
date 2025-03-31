@@ -1,0 +1,14 @@
+trigger: none
+pr: none
+resources:
+  repositories: []
+  
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    pool:
+      vmImage: 'Ubuntu-16.04'
+    continueOnError: true
+    steps:
+    - script: echo "hello to my first Build"
