@@ -37,7 +37,7 @@ jobs:
 
   deploy:
     name: "Trigger deployment"
-    needs: [docker-build-develop]
+    needs: [build-push-develop]
     uses: ./.github/workflows/trigger-azure-pipeline.yml
     with:
       azure-organization: ${{ vars.AZURE_ORGANIZATION }}
