@@ -35,7 +35,7 @@ jobs:
             ./
 
   deploy:
-    uses: ./.github/actions/trigger-azure-pipeline
+    uses: ./.github/workflows/trigger-azure-pipeline.yml
     with:
       azure-organization: ${{ vars.AZURE_ORGANIZATION }}
       azure-project: ${{ vars.AZURE_PROJECT }}
