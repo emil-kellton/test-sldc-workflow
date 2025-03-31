@@ -10,15 +10,19 @@ jobs:
     name: "Prepare application version"
     runs-on: ubuntu-latest
     if: github.event_name == 'create' && startsWith(github.ref, 'refs/heads/stable/')
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract stable version from branch name
+      - id: version
+        name: Extract stable version from branch name
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/stable/}
           VERSION=$(echo $BRANCH_NAME | cut -d '.' -f1,2)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Remove "-RC" suffix in pyproject.toml
         run: |
@@ -45,6 +49,6 @@ jobs:
 
       - name: Retag and push stable image
         run: |
-          docker pull ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC
-          docker tag ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}-RC ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}
-          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}
+          docker pull ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ needs.stable-create.outputs.version }}-RC
+          docker tag ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ needs.stable-create.outputs.version }}-RC ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.VERSION }}
+          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ needs.stable-create.outputs.version }}

@@ -10,6 +10,8 @@ jobs:
     name: "Bump application version"
     runs-on: ubuntu-latest
     if: github.event_name == 'create' && startsWith(github.ref, 'refs/heads/uat/')
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,12 +39,14 @@ jobs:
           git commit -am "Bump version to $NEW_VERSION"
           git push origin develop
 
-      - name: Add RC suffix in pyproject.toml
+      - id: version
+        name: Add RC suffix in pyproject.toml
         run: |
           git checkout $GITHUB_REF_NAME
           OLD_VERSION=$(grep '^version =' pyproject.toml | awk '{print $3}')
           NEW_VERSION="$OLD_VERSION-RC"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           sed -i "s/^version = .*/version = $NEW_VERSION/" pyproject.toml
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -65,5 +69,5 @@ jobs:
 
       - name: Build and push RC image
         run: |
-          docker build -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.NEW_VERSION }} .
-          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.NEW_VERSION }}
+          docker build -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ needs.version-bump-on-uat-create.outputs.version }} .
+          docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ needs.version-bump-on-uat-create.outputs.version }}
