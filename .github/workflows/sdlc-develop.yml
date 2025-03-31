@@ -7,6 +7,7 @@ on:
 
 jobs:
   docker-build-develop:
+    name: "Build Docker image"
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
     steps:
@@ -35,6 +36,8 @@ jobs:
             ./
 
   deploy:
+    name: "Trigger deployment"
+    needs: [docker-build-develop]
     uses: ./.github/workflows/trigger-azure-pipeline.yml
     with:
       azure-organization: ${{ vars.AZURE_ORGANIZATION }}

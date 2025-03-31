@@ -7,6 +7,7 @@ on:
 
 jobs:
   stable-create:
+    name: "Prepare application version"
     runs-on: ubuntu-latest
     if: github.event_name == 'create' && startsWith(github.ref, 'refs/heads/stable/')
     steps:
@@ -27,6 +28,14 @@ jobs:
           git config user.email "github-actions@github.com"
           git commit -am "Remove -RC suffix for stable release ${{ env.VERSION }}"
           git push origin $GITHUB_REF_NAME
+
+  build-docker-stable:
+    name: "Build Docker image"
+    runs-on: ubuntu-latest
+    needs: [stable-create]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3

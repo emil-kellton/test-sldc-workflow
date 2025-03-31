@@ -7,6 +7,7 @@ on:
 
 jobs:
   version-bump-on-uat-push:
+    name: "Bump application version"
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/uat/') &&
       github.event.created == false
@@ -29,13 +30,33 @@ jobs:
           git commit -am "Bump version to $NEW_VERSION"
           git push origin $GITHUB_REF_NAME
 
+  docker-build-uat:
+    name: "Build Docker image"
+    runs-on: ubuntu-latest
+    needs: [version-bump-on-uat-push]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push release candidate image
+      - name: Build and push RC image
         run: |
           docker build -t ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.NEW_VERSION }} .
           docker push ${{ vars.DOCKERHUB_ORGANIZATION }}/sldc-test:${{ env.NEW_VERSION }}
+
+
+  deploy:
+    name: "Trigger deployment"
+    needs: [docker-build-uat]
+    uses: ./.github/workflows/trigger-azure-pipeline.yml
+    with:
+      azure-organization: ${{ vars.AZURE_ORGANIZATION }}
+      azure-project: ${{ vars.AZURE_PROJECT }}
+      azure-pipeline-id: 1634
+    secrets:
+      azure-pat: ${{ secrets.AZURE_PAT }}
